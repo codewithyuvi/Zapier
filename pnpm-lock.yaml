@@ -234,6 +234,9 @@ importers:
 
   hooks:
     dependencies:
+      '@zapier/database':
+        specifier: workspace:*
+        version: link:../database
       express:
         specifier: ^5.2.1
         version: 5.2.1

@@ -1,8 +1,16 @@
 import {config, z} from "zod";
-import { router, protectedProcedure } from "./trpc.js";
-import {db,zaps,triggers, actions, availableTriggers, availableActions} from '@zapier/database'
+import { router, protectedProcedure, publicProcedure } from "./trpc.js";
+import {db,zaps,triggers, actions, users} from '@zapier/database';
 
 export const appRouter = router({
+
+    createUser: publicProcedure
+    .input(z.object({ name: z.string(), email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const result = await db.insert(users).values(input).returning();
+      return result[0];
+    }),
+
     //creating a new endpoint named 'createZap'
     // We use protectedProcedure, so it will fail if the user is not authenticated
     createZap: protectedProcedure

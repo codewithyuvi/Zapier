@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import * as trpcExpress from '@trpc/server/adapters/express';
 import { appRouter } from './router.js';
-import { any } from 'zod';
 
 const app = express();
 // Set the port this microservice will run on

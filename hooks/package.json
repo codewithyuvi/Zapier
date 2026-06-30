@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@zapier/database": "workspace:*",
     "express": "^5.2.1"
   },
   "devDependencies": {
