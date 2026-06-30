@@ -1,0 +1,6 @@
+packages:
+  - "primary-backend"
+  - "hooks"
+  - "database"
+allowBuilds:
+  esbuild: true
