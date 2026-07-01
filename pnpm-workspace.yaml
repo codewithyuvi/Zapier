@@ -2,5 +2,7 @@ packages:
   - "primary-backend"
   - "hooks"
   - "database"
+  - "frontend"
+  - "sweeper"
 allowBuilds:
   esbuild: true
