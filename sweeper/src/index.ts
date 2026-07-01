@@ -17,7 +17,7 @@ let isRunning = true;
 
 async function startSweeper() {
 
-    console.log("connecting to kafka...");
+    console.log("sweeper connecting to kafka...");
     try {
         await producer.connect();
         console.log("Sweeper started! Polling database...");
@@ -69,9 +69,9 @@ async function startSweeper() {
             console.error("Critical error in sweeper database loop:", error)
         }
 
-        // Pause for 3 seconds before checking the database again to avoid overloading Postgres
+        // Pause for 1.5 seconds before checking the database again to avoid overloading Postgres
         if (isRunning) {
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
         }
     }
 }

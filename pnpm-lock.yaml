@@ -291,6 +291,25 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  processor:
+    dependencies:
+      '@zapier/database':
+        specifier: workspace:*
+        version: link:../database
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.22.0)
+      kafkajs:
+        specifier: ^2.2.4
+        version: 2.2.4
+    devDependencies:
+      tsx:
+        specifier: ^4.22.4
+        version: 4.22.4
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   sweeper:
     dependencies:
       '@zapier/database':

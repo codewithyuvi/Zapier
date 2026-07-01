@@ -4,5 +4,6 @@ packages:
   - "database"
   - "frontend"
   - "sweeper"
+  - "processor"
 allowBuilds:
   esbuild: true
