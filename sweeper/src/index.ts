@@ -2,6 +2,8 @@ import {Kafka,Partitioners} from 'kafkajs';
 import {db, triggerOutbox} from '@zapier/database';
 import {eq} from 'drizzle-orm';
 
+const TOPIC_NAME = 'zap-events'
+
 const kafka = new Kafka({
     clientId: 'zapier-sweeper',
     brokers: ['localhost:9092']
@@ -46,7 +48,7 @@ async function startSweeper() {
 
                         // Push the event data onto a Kafka topic named 'zap-events'
                         await producer.send({
-                            topic: 'zap-events',
+                            topic: TOPIC_NAME,
                             messages: [{value: JSON.stringify(event)}]
                         })
                         
@@ -54,6 +56,9 @@ async function startSweeper() {
                         await db.update(triggerOutbox)
                         .set({status: 'processed'})
                         .where(eq(triggerOutbox.id, event.id));
+
+                        await db.delete(triggerOutbox)
+                        .where(eq(triggerOutbox.id,event.id))
                         
                         console.log(`Event ID ${event.id} sweeped and sent to Kafka.`);
 

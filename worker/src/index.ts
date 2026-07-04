@@ -1,9 +1,11 @@
 import { Kafka } from "kafkajs";
-import { db, actions } from "@zapier/database";
+import { db, actions, triggerOutbox } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
 
+const TOPIC_NAME  = "zap-events" ;
+
 const kafka = new Kafka({
-  clientId: "zapier-processor",
+  clientId: "zapier-worker",
   brokers: ["localhost:9092"],
   retry: {
     initialRetryTime: 300, // Wait 300ms before the first retry
@@ -17,7 +19,7 @@ const consumer = kafka.consumer({ groupId: "main-worker-group" });
 async function processZapEvent(messageValue: Buffer) {
   let event;
 
-  // 1. Parse JSON safely. If this fails, it's a poison pill message—don't retry it.
+  // Parse JSON safely. If this fails, it's a poison pill message—don't retry it.
   try {
     event = JSON.parse(messageValue.toString());
   } catch (parseError) {
@@ -52,25 +54,36 @@ async function processZapEvent(messageValue: Buffer) {
         } else if (action.availableActionsId === "slack") {
             console.log(`💬 SIMULATED: Sending Slack message...`);
         }
+        
     } catch(actionError){
         console.error(`Action step ${action.actionOrder} failed:`, actionError);
     }
   }
 }
-async function startProcessor() {
+async function startWorker() {
   try {
-    console.log("Processor connecting to kafka...");
+    console.log("Worker connecting to kafka...");
     await consumer.connect();
     console.log("Subscribing to topic...");
-    await consumer.subscribe({ topic: "zap-events", fromBeginning: true });
+    await consumer.subscribe({ topic: TOPIC_NAME, fromBeginning: true });
     console.log("Consumer running. Waiting for messages...");
 
     await consumer.run({
+      autoCommit: false,
       eachMessage: async ({ topic, partition, message }) => {
         if (!message.value) return;
         await processZapEvent(message.value);
+        
+        await new Promise(r => setTimeout(r, 2000));
+
+        await consumer.commitOffsets([{
+          topic: TOPIC_NAME,
+          partition: partition,
+          offset: (parseInt(message.offset) + 1).toString()
+        }])
       },
     });
+
   } catch (err) {
     console.error("Failed to run consumer:", err);
     process.exit(1);
@@ -97,4 +110,4 @@ errorTypes.forEach(type => {
   });
 });
 
-startProcessor();
+startWorker();

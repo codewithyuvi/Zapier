@@ -34,7 +34,7 @@ export const appRouter = router({
             
             const zapId = await db.transaction(async (tx) => {
 
-                // 1. Insert the main Zap row.
+                // Insert the main Zap row.
                 const [zap] = await tx.insert(zaps).values({
                     userId: ctx.userId,
                     title: input.title,
@@ -42,14 +42,14 @@ export const appRouter = router({
                 }).returning({id: zaps.id})
 
 
-                // 2. Insert the Trigger row, linking it to the Zap we just created (zap.id)
+                // Insert the Trigger row, linking it to the Zap we just created (zap.id)
                 await tx.insert(triggers).values({
                     zapId: zap?.id,
                     availableTriggersId: input.trigger.availableTriggerId,
                     config: input.trigger.config || {}
                 })
 
-                // 3. Since 'actions' is an array, we map over it to create an array of insert Promises
+                // Since 'actions' is an array, we map over it to create an array of insert Promises
                 const actionPromises = input.actions.map((action, index) => {
                     return tx.insert(actions).values({
                         zapId: zap?.id,

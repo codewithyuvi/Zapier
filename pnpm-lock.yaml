@@ -291,7 +291,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  processor:
+  sweeper:
     dependencies:
       '@zapier/database':
         specifier: workspace:*
@@ -310,7 +310,7 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  sweeper:
+  worker:
     dependencies:
       '@zapier/database':
         specifier: workspace:*
