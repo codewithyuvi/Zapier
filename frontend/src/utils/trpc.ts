@@ -6,8 +6,12 @@ export const trpc = createTRPCClient<AppRouter>({
     httpBatchLink({
       url: 'http://localhost:3001/trpc',
       headers() {
+        let userId = '1';
+        if (typeof window !== 'undefined') {
+          userId = localStorage.getItem('userId') || '1';
+        }
         return {
-          authorization: '1', // Hardcoded user ID for now
+          authorization: userId,
         };
       },
     }),

@@ -3,8 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Webhook, Mail, MessageSquare, Plus, Save, Play, X, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { trpc } from "@/utils/trpc";
 
 export default function ZapBuilder() {
+  const router = useRouter();
+
+  const [title, setTitle] = useState('Untitled Zap')
   const [actions, setActions] = useState([{ id: 1, type: "email" }]);
 
   const addAction = (type: string) => {
@@ -14,6 +20,33 @@ export default function ZapBuilder() {
   const removeAction = (id: number) => {
     setActions(actions.filter(a => a.id !== id));
   };
+
+  const createZap = useMutation({
+    mutationFn: (newZap: any) => trpc.createZap.mutate(newZap),
+    onSuccess: () => {
+      alert('Zap created');
+      router.push('/')
+    },
+    onError: (err) => {
+      alert(`Failed to publish: ${err.message}`);
+    }
+
+
+  })
+
+  const handlePublish = () => {
+    createZap.mutate({
+      title: title,
+      trigger: {
+        availableTriggerId: "webhook", 
+        config: {}
+      },
+      actions: actions.map(action => ({
+        availableActionId: action.type, 
+        config: {}
+      }))
+    })
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0f13] text-[#ededed] font-sans selection:bg-purple-500/30 pb-20">
@@ -27,7 +60,8 @@ export default function ZapBuilder() {
           <div className="h-6 w-[1px] bg-white/10"></div>
           <input 
             type="text" 
-            defaultValue="Untitled Zap" 
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className="bg-transparent border-none focus:outline-none text-lg font-medium placeholder:text-gray-600 w-64 hover:bg-white/5 px-2 py-1 rounded transition-colors"
           />
         </div>
@@ -37,9 +71,13 @@ export default function ZapBuilder() {
             <Play className="w-4 h-4" />
             Test
           </button>
-          <button className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2 rounded-full font-medium hover:bg-purple-700 transition-all active:scale-95 shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)]">
+
+          <button 
+            onClick={handlePublish}
+            disabled={createZap.isPending}
+            className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2 rounded-full font-medium hover:bg-purple-700 transition-all active:scale-95 shadow-[0_0_15px_rgba(139,92,246,0.3)] hover:shadow-[0_0_25px_rgba(139,92,246,0.5)]">
             <Save className="w-4 h-4" />
-            Publish Zap
+            {createZap.isPending ? "Publishing..." : "Publish Zap"}
           </button>
         </div>
       </nav>

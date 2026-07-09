@@ -4,6 +4,7 @@ import {
   varchar,
   jsonb,
   serial,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -27,7 +28,7 @@ export const availableActions = pgTable("available_actions", {
 // ZAPS (The Workflow)
 export const zaps = pgTable("zaps", {
   id: serial("id").primaryKey(),
-  userId: serial("user_id")
+  userId: integer("user_id")
     .references(() => users.id)
     .notNull(),
   title: varchar("title", { length: 256 }).notNull(),
@@ -38,7 +39,7 @@ export const zaps = pgTable("zaps", {
 // TRIGGERS
 export const triggers = pgTable("triggers", {
   id: serial("id").primaryKey(),
-  zapId: serial("zap_id")
+  zapId: integer("zap_id")
     .references(() => zaps.id)
     .notNull()
     .unique(),
@@ -51,21 +52,20 @@ export const triggers = pgTable("triggers", {
 // ACTIONS
 export const actions = pgTable("actions", {
   id: serial("id").primaryKey(),
-  zapId: serial("zap_id")
+  zapId: integer("zap_id")
     .references(() => zaps.id)
-    .notNull()
-    .unique(),
+    .notNull(),
   availableActionsId: varchar("available_action_id", { length: 256 })
     .references(() => availableActions.id)
     .notNull(),
-  actionOrder: serial("action_order").notNull(),
+  actionOrder: integer("action_order").notNull(),
   config: jsonb("config").default({}),
 });
 
 // TRIGGER OUTBOX
 export const triggerOutbox = pgTable("trigger_outbox", {
   id: serial("id").primaryKey(),
-  zapId: serial("zap_id")
+  zapId: integer("zap_id")
     .references(() => zaps.id)
     .notNull(),
   payload: jsonb("payload").notNull(),

@@ -14,6 +14,7 @@ export default function Dashboard() {
   const createUserMutation = useMutation({
     mutationFn : () => trpc.createUser.mutate({name: 'testuser', email: 'test@gmail.com'}),
     onSuccess: (data) => {
+      localStorage.setItem('userId', data.id.toString());
       alert(`user created! ${data.name}`)
     }
   })
