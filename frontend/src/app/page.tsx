@@ -30,19 +30,22 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Antigravity Automations</h1>
         </div>
         
-        <Link 
-          href="/create"
-          className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full font-medium hover:bg-gray-100 transition-all active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-        >
+        <div className="flex gap-4">
           <button 
             onClick={() => createUserMutation.mutate()}
             className="flex items-center gap-2 bg-purple-600/20 text-purple-400 px-5 py-2.5 rounded-full font-medium hover:bg-purple-600/30 transition-all border border-purple-500/30"
           >
             Create Test User
           </button>
-          <Plus className="w-4 h-4" />
-          Create Zap
-        </Link>
+          
+          <Link 
+            href="/create"
+            className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full font-medium hover:bg-gray-100 transition-all active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+          >
+            <Plus className="w-4 h-4" />
+            Create Zap
+          </Link>
+        </div>
       </header>
 
       {/* Main Content */}

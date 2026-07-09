@@ -1,9 +1,15 @@
 import { db } from "./db.js";
-import { availableActions, availableTriggers, users } from "./schema.js";
+import { availableActions, availableTriggers, users, zaps, triggers, actions } from "./schema.js";
 
 async function main() {
     try {
-        
+        // await db.delete(zaps)
+        // await db.delete(triggers)
+        // await db.delete(actions)
+        // await db.delete(users)
+        // await db.delete(availableActions)
+        // await db.delete(availableTriggers)
+
         await db.insert(users).values({
             name: 'Yuvi',
             email: 'yuvi.1783079131976@example.com'
