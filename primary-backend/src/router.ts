@@ -1,6 +1,6 @@
 import {config, z} from "zod";
 import { router, protectedProcedure, publicProcedure } from "./trpc.js";
-import {db,zaps,triggers, actions, users} from '@zapier/database';
+import {db,zaps,triggers, actions, users, availableActions, availableTriggers} from '@zapier/database';
 
 export const appRouter = router({
 
@@ -67,6 +67,40 @@ export const appRouter = router({
 
             return {success : true, zapId};
         }),
+    
+    getAvailableTriggers: publicProcedure
+        .query(async () => {
+            const trigger = await db.select().from(availableTriggers);
+            return trigger;
+        }),
+    
+    getAvailableActions: publicProcedure
+        .query(async () => {
+            const action = await db.select().from(availableActions);
+            return action;
+        }),
+    
+    getZaps: protectedProcedure
+        .query(async ({ctx}) => {
+            const userZaps = await db.query.zaps.findMany({
+                where: (zaps, {eq}) => eq(zaps.userId, ctx.userId),
+                with: {
+                    trigger: {
+                        with: {
+                            availableTrigger: true
+                        }
+                    },
+                    actions: {
+                        with: {
+                            availableAction: true
+                        }
+                    }
+                },
+                orderBy: (zaps, { desc }) => [desc(zaps.createdAt)]
+            })
+            return userZaps;
+        })
+
 
 });
 
