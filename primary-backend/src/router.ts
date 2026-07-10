@@ -1,6 +1,7 @@
 import {config, z} from "zod";
 import { router, protectedProcedure, publicProcedure } from "./trpc.js";
-import {db,zaps,triggers, actions, users, availableActions, availableTriggers} from '@zapier/database';
+import {db,zaps,triggers, actions, users, availableActions, availableTriggers , zapRuns} from '@zapier/database';
+import { eq, desc } from "drizzle-orm";
 
 export const appRouter = router({
 
@@ -99,8 +100,28 @@ export const appRouter = router({
                 orderBy: (zaps, { desc }) => [desc(zaps.createdAt)]
             })
             return userZaps;
-        })
-
+        }),
+    
+    getZapRuns: protectedProcedure
+        .query(async ({ctx}) => {
+            // We join zapRuns and zaps together so we can filter by the user's ID
+            // and so we can return the Zap's title along with the run data!
+            const runs = await db.select({
+                id: zapRuns.id,
+                zapId: zapRuns.zapId,
+                status: zapRuns.status,
+                payload: zapRuns.payload,
+                createdAt: zapRuns.createdAt,
+                completedAt: zapRuns.completedAt,
+                errorMessage: zapRuns.errorMessage,
+                zapTitle: zaps.title,
+            })
+            .from(zapRuns)
+            .innerJoin(zaps, eq(zapRuns.zapId, zaps.id))
+            .where(eq(zaps.userId, ctx.userId))
+            .orderBy(desc(zapRuns.createdAt));
+            return runs;
+        }),
 
 });
 

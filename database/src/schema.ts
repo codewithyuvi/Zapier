@@ -5,6 +5,7 @@ import {
   jsonb,
   serial,
   integer,
+  text
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -73,6 +74,19 @@ export const triggerOutbox = pgTable("trigger_outbox", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// zap runs
+export const zapRuns = pgTable("zap_runs", {
+  id: serial("id").primaryKey(),
+  zapId: integer("zap_id")
+    .references(() => zaps.id)
+    .notNull(),
+  status: varchar("status", {length: 50}).default('processing').notNull(),
+  payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  errorMessage: text("error_message")
+})
+
 // RELATIONS
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -96,4 +110,8 @@ export const actionsRelations = relations(actions, ({ one }) => ({
     fields: [actions.availableActionsId],
     references: [availableActions.id],
   }),
+}));
+
+export const zapRunsRelations = relations(zapRuns, ({ one }) => ({
+  zap: one(zaps, { fields: [zapRuns.zapId], references: [zaps.id] }),
 }));
