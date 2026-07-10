@@ -1,5 +1,5 @@
 import { Kafka } from "kafkajs";
-import { db, actions, triggerOutbox } from "@zapier/database";
+import { db, actions, triggerOutbox, zapRuns } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
 
 const TOPIC_NAME  = "zap-events" ;
@@ -28,37 +28,55 @@ async function processZapEvent(messageValue: Buffer) {
   }
   const zapId = event.zapId;
   const webhookPayload = event.payload;
-  console.log(`Processing Zap ID: ${zapId}`);
-  console.log(`Webhook Payload:`, webhookPayload);
+
+  const [run] = await db.insert(zapRuns).values({
+    zapId: zapId,
+    payload: webhookPayload,
+    status: 'processing'
+  }).returning({ id: zapRuns.id });
+
   // Fetch all the actions this Zap is supposed to execute, ordered correctly
-  const zapActions = await db
+
+  try{
+
+    const zapActions = await db
     .select()
     .from(actions)
     .where(eq(actions.zapId, zapId))
     .orderBy(asc(actions.actionOrder));
-
-  if (zapActions.length === 0) {
-    console.log("No actions found for this Zap!");
-    return;
-  }
-  for (const action of zapActions) {
-    console.log(
-      `Executing step ${action.actionOrder}: ${action.availableActionsId}`,
-    );
-
-    try{
-
-        if (action.availableActionsId === "email") {
-            const emailTo = (action.config as any)?.to || "unknown@example.com";
-            console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
-        } else if (action.availableActionsId === "slack") {
-            console.log(`💬 SIMULATED: Sending Slack message...`);
-        }
-        
-    } catch(actionError){
-        console.error(`Action step ${action.actionOrder} failed:`, actionError);
+    
+    if (zapActions.length === 0) {
+      console.log("No actions found for this Zap!");
+      await db.update(zapRuns).set({ status: 'success', completedAt: new Date() }).where(eq(zapRuns.id, run.id));
+      return;
     }
-  }
+    for (const action of zapActions) {
+      console.log(
+        `Executing step ${action.actionOrder}: ${action.availableActionsId}`,
+      );
+      
+      
+      if (action.availableActionsId === "email") {
+        const emailTo = (action.config as any)?.to || "unknown@example.com";
+        console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
+      } else if (action.availableActionsId === "slack") {
+        console.log(`💬 SIMULATED: Sending Slack message...`);
+      }
+    }
+      console.log(`Zap Run ${run.id} Completed Successfully!`);
+      await db.update(zapRuns).set({ 
+          status: 'success', 
+          completedAt: new Date() 
+      }).where(eq(zapRuns.id, run.id)); 
+
+  } catch (actionError: any){
+      console.error(`❌ Zap Run ${run.id} Failed:`, actionError);
+      await db.update(zapRuns).set({ 
+          status: 'failed', 
+          errorMessage: actionError.message || 'Unknown error',
+          completedAt: new Date()
+      }).where(eq(zapRuns.id, run.id));
+    }
 }
 async function startWorker() {
   try {

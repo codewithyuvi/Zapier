@@ -1,6 +1,6 @@
 'use client'
 import Link from "next/link";
-import { Zap, Plus, ArrowRight, Settings, Activity } from "lucide-react";
+import { Zap, Plus, ArrowRight, Settings, Activity, Clock } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -38,6 +38,14 @@ export default function Dashboard() {
           >
             Create Test User
           </button>
+          
+          <Link 
+            href="/history"
+            className="flex items-center gap-2 bg-white/5 text-gray-300 px-5 py-2.5 rounded-full font-medium hover:bg-white/10 transition-all border border-white/10"
+          >
+            <Clock className="w-4 h-4" />
+            History
+          </Link>
           
           <Link 
             href="/create"
