@@ -44,7 +44,7 @@ export const appRouter = router({
 
                 // Insert the Trigger row, linking it to the Zap we just created (zap.id)
                 await tx.insert(triggers).values({
-                    zapId: zap?.id,
+                    zapId: zap!.id,
                     availableTriggersId: input.trigger.availableTriggerId,
                     config: input.trigger.config || {}
                 })
@@ -52,7 +52,7 @@ export const appRouter = router({
                 // Since 'actions' is an array, we map over it to create an array of insert Promises
                 const actionPromises = input.actions.map((action, index) => {
                     return tx.insert(actions).values({
-                        zapId: zap?.id,
+                        zapId: zap!.id,
                         actionOrder: index+1,
                         availableActionsId: action.availableActionId,
                         config: action.config || {}
@@ -61,7 +61,7 @@ export const appRouter = router({
 
                 await Promise.all(actionPromises);
 
-                return zap?.id;
+                return zap!.id;
             })
 
 
