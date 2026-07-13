@@ -13,9 +13,11 @@
   "dependencies": {
     "@zapier/database": "workspace:*",
     "drizzle-orm": "0.45.2",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "nodemailer": "^9.0.3"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }

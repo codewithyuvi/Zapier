@@ -1,6 +1,7 @@
 import { Kafka } from "kafkajs";
 import { db, actions, triggerOutbox, zapRuns } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
+import nodemailer from 'nodemailer';
 
 const TOPIC_NAME  = "zap-events" ;
 
@@ -12,6 +13,23 @@ const kafka = new Kafka({
     retries: 5, // Try connecting 5 times before finally throwing an error
   },
 });
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.example.com",
+  port: 587,
+  secure: false, // use STARTTLS (upgrade connection to TLS after connecting)
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+try {
+  await transporter.verify();
+  console.log("Server is ready to take our messages");
+} catch (err) {
+  console.error("Verification failed:", err);
+}
 
 // We use a Consumer to PULL messages off the queue.
 // The groupId ensures that if we run 5 processors, each message only goes to 1 of them!
