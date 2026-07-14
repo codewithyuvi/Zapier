@@ -4,7 +4,7 @@ import { eq, asc } from "drizzle-orm";
 import nodemailer from 'nodemailer';
 
 const TOPIC_NAME  = "zap-events" ;
-
+ 
 const kafka = new Kafka({
   clientId: "zapier-worker",
   brokers: ["localhost:9092"],
