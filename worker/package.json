@@ -12,6 +12,7 @@
   "type": "module",
   "dependencies": {
     "@zapier/database": "workspace:*",
+    "axios": "^1.18.1",
     "drizzle-orm": "0.45.2",
     "kafkajs": "^2.2.4",
     "nodemailer": "^9.0.3"

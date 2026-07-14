@@ -2,6 +2,7 @@ import { Kafka } from "kafkajs";
 import { db, actions, triggerOutbox, zapRuns } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
 import nodemailer from 'nodemailer';
+import axios from 'axios';
 
 const TOPIC_NAME  = "zap-events" ;
 
@@ -78,8 +79,26 @@ async function processZapEvent(messageValue: Buffer) {
           text: "This email was automatically sent by your worker process.",
         })
         console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
-      } else if (action.availableActionsId === "slack") {
+      } 
+      
+      else if (action.availableActionsId === "slack") {
+
         console.log(`💬 SIMULATED: Sending Slack message...`);
+        const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
+        console.log(slackWebhookUrl);
+        if (!slackWebhookUrl) {
+          throw new Error("Slack Webhook URL is missing!");
+        }
+
+        try {
+          await axios.post(slackWebhookUrl, {
+            text: `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`
+          });
+          console.log(`💬 REAL SLACK MESSAGE SENT!`);
+        } catch (slackError) {
+          console.error("Failed to send Slack message", slackError);
+          throw new Error("Slack action failed"); // This will trigger your catch block and mark the run as failed!
+        }
       }
     }
       console.log(`Zap Run ${run.id} Completed Successfully!`);
