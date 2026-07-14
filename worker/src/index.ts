@@ -4,7 +4,7 @@ import { eq, asc } from "drizzle-orm";
 import nodemailer from 'nodemailer';
 
 const TOPIC_NAME  = "zap-events" ;
- 
+
 const kafka = new Kafka({
   clientId: "zapier-worker",
   brokers: ["localhost:9092"],
@@ -15,21 +15,14 @@ const kafka = new Kafka({
 });
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.example.com",
-  port: 587,
-  secure: false, // use STARTTLS (upgrade connection to TLS after connecting)
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
-
-try {
-  await transporter.verify();
-  console.log("Server is ready to take our messages");
-} catch (err) {
-  console.error("Verification failed:", err);
-}
 
 // We use a Consumer to PULL messages off the queue.
 // The groupId ensures that if we run 5 processors, each message only goes to 1 of them!
@@ -75,8 +68,16 @@ async function processZapEvent(messageValue: Buffer) {
       
       
       if (action.availableActionsId === "email") {
-        const emailTo = (action.config as any)?.to || "unknown@example.com";
+        const emailTo = (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
         console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
+
+        await transporter.sendMail({
+          from:'"Zapier" <bot@zapier.com>',
+          to: emailTo,
+          subject: "Automated Zap Execution!",
+          text: "This email was automatically sent by your worker process.",
+        })
+        console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
       } else if (action.availableActionsId === "slack") {
         console.log(`💬 SIMULATED: Sending Slack message...`);
       }
@@ -98,12 +99,16 @@ async function processZapEvent(messageValue: Buffer) {
 }
 async function startWorker() {
   try {
+    console.log("Verifying mail server connection...");
+    await transporter.verify();
+    console.log("✅ SMTP server is ready to take our messages");
+
     console.log("Worker connecting to kafka...");
     await consumer.connect();
     console.log("Subscribing to topic...");
     await consumer.subscribe({ topic: TOPIC_NAME, fromBeginning: true });
     console.log("Consumer running. Waiting for messages...");
-
+    
     await consumer.run({
       autoCommit: false,
       eachMessage: async ({ topic, partition, message }) => {
@@ -119,7 +124,7 @@ async function startWorker() {
         }])
       },
     });
-
+    
   } catch (err) {
     console.error("Failed to run consumer:", err);
     process.exit(1);
