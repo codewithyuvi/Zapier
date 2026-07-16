@@ -1,10 +1,10 @@
 import { Kafka } from "kafkajs";
 import { db, actions, triggerOutbox, zapRuns } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
-import nodemailer from 'nodemailer';
-import axios from 'axios';
+import nodemailer from "nodemailer";
+import axios from "axios";
 
-const TOPIC_NAME  = "zap-events" ;
+const TOPIC_NAME = "zap-events";
 
 const kafka = new Kafka({
   clientId: "zapier-worker",
@@ -18,7 +18,7 @@ const kafka = new Kafka({
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
-  secure: true, 
+  secure: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -41,48 +41,50 @@ async function processZapEvent(messageValue: Buffer) {
   const zapId = event.zapId;
   const webhookPayload = event.payload;
 
-  const [run] = await db.insert(zapRuns).values({
-    zapId: zapId,
-    payload: webhookPayload,
-    status: 'processing'
-  }).returning({ id: zapRuns.id });
+  const [run] = await db
+    .insert(zapRuns)
+    .values({
+      zapId: zapId,
+      payload: webhookPayload,
+      status: "processing",
+    })
+    .returning({ id: zapRuns.id });
 
   // Fetch all the actions this Zap is supposed to execute, ordered correctly
 
-  try{
-
+  try {
     const zapActions = await db
-    .select()
-    .from(actions)
-    .where(eq(actions.zapId, zapId))
-    .orderBy(asc(actions.actionOrder));
-    
+      .select()
+      .from(actions)
+      .where(eq(actions.zapId, zapId))
+      .orderBy(asc(actions.actionOrder));
+
     if (zapActions.length === 0) {
       console.log("No actions found for this Zap!");
-      await db.update(zapRuns).set({ status: 'success', completedAt: new Date() }).where(eq(zapRuns.id, run.id));
+      await db
+        .update(zapRuns)
+        .set({ status: "success", completedAt: new Date() })
+        .where(eq(zapRuns.id, run.id));
       return;
     }
     for (const action of zapActions) {
       console.log(
         `Executing step ${action.actionOrder}: ${action.availableActionsId}`,
       );
-      
-      
+
       if (action.availableActionsId === "email") {
-        const emailTo = (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
+        const emailTo =
+          (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
         console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
 
         await transporter.sendMail({
-          from:'"Zapier" <bot@zapier.com>',
+          from: '"Zapier" <bot@zapier.com>',
           to: emailTo,
           subject: "Automated Zap Execution!",
           text: "This email was automatically sent by your worker process.",
-        })
+        });
         console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
-      } 
-      
-      else if (action.availableActionsId === "slack") {
-
+      } else if (action.availableActionsId === "slack") {
         console.log(`💬 SIMULATED: Sending Slack message...`);
         const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
         console.log(slackWebhookUrl);
@@ -92,7 +94,7 @@ async function processZapEvent(messageValue: Buffer) {
 
         try {
           await axios.post(slackWebhookUrl, {
-            text: `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`
+            text: `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`,
           });
           console.log(`💬 REAL SLACK MESSAGE SENT!`);
         } catch (slackError) {
@@ -101,20 +103,25 @@ async function processZapEvent(messageValue: Buffer) {
         }
       }
     }
-      console.log(`Zap Run ${run.id} Completed Successfully!`);
-      await db.update(zapRuns).set({ 
-          status: 'success', 
-          completedAt: new Date() 
-      }).where(eq(zapRuns.id, run.id)); 
-
-  } catch (actionError: any){
-      console.error(`❌ Zap Run ${run.id} Failed:`, actionError);
-      await db.update(zapRuns).set({ 
-          status: 'failed', 
-          errorMessage: actionError.message || 'Unknown error',
-          completedAt: new Date()
-      }).where(eq(zapRuns.id, run.id));
-    }
+    console.log(`Zap Run ${run.id} Completed Successfully!`);
+    await db
+      .update(zapRuns)
+      .set({
+        status: "success",
+        completedAt: new Date(),
+      })
+      .where(eq(zapRuns.id, run.id));
+  } catch (actionError: any) {
+    console.error(`❌ Zap Run ${run.id} Failed:`, actionError);
+    await db
+      .update(zapRuns)
+      .set({
+        status: "failed",
+        errorMessage: actionError.message || "Unknown error",
+        completedAt: new Date(),
+      })
+      .where(eq(zapRuns.id, run.id));
+  }
 }
 async function startWorker() {
   try {
@@ -127,23 +134,24 @@ async function startWorker() {
     console.log("Subscribing to topic...");
     await consumer.subscribe({ topic: TOPIC_NAME, fromBeginning: true });
     console.log("Consumer running. Waiting for messages...");
-    
+
     await consumer.run({
       autoCommit: false,
       eachMessage: async ({ topic, partition, message }) => {
         if (!message.value) return;
         await processZapEvent(message.value);
-        
-        await new Promise(r => setTimeout(r, 2000));
 
-        await consumer.commitOffsets([{
-          topic: TOPIC_NAME,
-          partition: partition,
-          offset: (parseInt(message.offset) + 1).toString()
-        }])
+        await new Promise((r) => setTimeout(r, 2000));
+
+        await consumer.commitOffsets([
+          {
+            topic: TOPIC_NAME,
+            partition: partition,
+            offset: (parseInt(message.offset) + 1).toString(),
+          },
+        ]);
       },
     });
-    
   } catch (err) {
     console.error("Failed to run consumer:", err);
     process.exit(1);
@@ -155,11 +163,13 @@ process.on("unhandledRejection", (reason) => {
 });
 
 // Graceful shutdown handling for container orchestration platforms (Docker, K8s, PM2)
-const errorTypes = ['SIGINT', 'SIGTERM', 'QUIT'];
-errorTypes.forEach(type => {
+const errorTypes = ["SIGINT", "SIGTERM", "QUIT"];
+errorTypes.forEach((type) => {
   process.on(type, async () => {
     try {
-      console.log(`\nReceived ${type}. Disconnecting Kafka consumer cleanly...`);
+      console.log(
+        `\nReceived ${type}. Disconnecting Kafka consumer cleanly...`,
+      );
       await consumer.disconnect();
       console.log("👋 Disconnected safely. Exiting process.");
       process.exit(0);
