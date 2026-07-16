@@ -11,14 +11,20 @@ export default function ZapBuilder() {
   const router = useRouter();
 
   const [title, setTitle] = useState('Untitled Zap')
-  const [actions, setActions] = useState([{ id: 1, type: "email" }]);
+  const [actions, setActions] = useState<any[]>([{ id: 1, type: "email", config: {} }]);
 
   const addAction = (type: string) => {
-    setActions([...actions, { id: Date.now(), type }]);
+    setActions([...actions, { id: Date.now(), type, config: {} }]);
   };
 
   const removeAction = (id: number) => {
     setActions(actions.filter(a => a.id !== id));
+  };
+
+  const updateActionConfig = (id: number, key: string, value: string) => {
+    setActions(actions.map(a => 
+      a.id === id ? { ...a, config: { ...a.config, [key]: value } } : a
+    ));
   };
 
   const createZap = useMutation({
@@ -43,7 +49,7 @@ export default function ZapBuilder() {
       },
       actions: actions.map(action => ({
         availableActionId: action.type, 
-        config: {}
+        config: action.config || {}
       }))
     })
   }
@@ -127,9 +133,48 @@ export default function ZapBuilder() {
                 <div className="flex-1">
                   <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase mb-1">{index + 2}. Action</div>
                   <h3 className="text-xl font-medium mb-1">{action.type === 'email' ? 'Send Email' : 'Send Slack Message'}</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-400 mb-4">
                     {action.type === 'email' ? 'Sends an outbound email via SMTP.' : 'Posts a message to a Slack channel.'}
                   </p>
+
+                  {/* Dynamic config fields */}
+                  {action.type === 'email' && (
+                    <div className="space-y-3 mt-4">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">To Address</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. {payload.email}" 
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500/50"
+                          value={action.config?.to || ''}
+                          onChange={(e) => updateActionConfig(action.id, 'to', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Email Body</label>
+                        <textarea 
+                          placeholder="e.g. Hello {payload.name}!" 
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500/50 min-h-[80px]"
+                          value={action.config?.body || ''}
+                          onChange={(e) => updateActionConfig(action.id, 'body', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {action.type === 'slack' && (
+                    <div className="space-y-3 mt-4">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Message Text</label>
+                        <textarea 
+                          placeholder="e.g. New lead received: {payload.name}" 
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500/50 min-h-[80px]"
+                          value={action.config?.message || ''}
+                          onChange={(e) => updateActionConfig(action.id, 'message', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

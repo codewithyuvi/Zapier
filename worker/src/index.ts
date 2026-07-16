@@ -4,6 +4,13 @@ import { eq, asc } from "drizzle-orm";
 import nodemailer from "nodemailer";
 import axios from "axios";
 
+function parseDynamicData(template: string, payload: any): string {
+  if (!template) return "";
+  return template.replace(/\{payload\.([^}]+)\}/g, (_, key) => {
+    return payload[key] !== undefined ? String(payload[key]) : "";
+  });
+}
+
 const TOPIC_NAME = "zap-events";
 
 const kafka = new Kafka({
@@ -73,15 +80,20 @@ async function processZapEvent(messageValue: Buffer) {
       );
 
       if (action.availableActionsId === "email") {
-        const emailTo =
-          (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
+        const rawEmailTo = (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
+        let emailTo = parseDynamicData(rawEmailTo, webhookPayload);
+        if (!emailTo) emailTo = rawEmailTo;
+
+        const rawEmailBody = (action.config as any)?.body || "This email was automatically sent by your worker process.";
+        const emailBody = parseDynamicData(rawEmailBody, webhookPayload) || rawEmailBody;
+
         console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
 
         await transporter.sendMail({
           from: '"Zapier" <bot@zapier.com>',
           to: emailTo,
           subject: "Automated Zap Execution!",
-          text: "This email was automatically sent by your worker process.",
+          text: emailBody,
         });
         console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
       } else if (action.availableActionsId === "slack") {
@@ -92,9 +104,12 @@ async function processZapEvent(messageValue: Buffer) {
           throw new Error("Slack Webhook URL is missing!");
         }
 
+        const rawMessage = (action.config as any)?.message || `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`;
+        const slackMessage = parseDynamicData(rawMessage, webhookPayload);
+
         try {
           await axios.post(slackWebhookUrl, {
-            text: `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`,
+            text: slackMessage,
           });
           console.log(`💬 REAL SLACK MESSAGE SENT!`);
         } catch (slackError) {
