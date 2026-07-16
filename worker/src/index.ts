@@ -81,8 +81,11 @@ async function processZapEvent(messageValue: Buffer) {
 
       if (action.availableActionsId === "email") {
         const rawEmailTo = (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
-        let emailTo = parseDynamicData(rawEmailTo, webhookPayload);
-        if (!emailTo) emailTo = rawEmailTo;
+        const emailTo = parseDynamicData(rawEmailTo, webhookPayload);
+        
+        if (!emailTo || emailTo.trim() === "") {
+          throw new Error(`Cannot send email: 'To' address resolved to empty string. Check your webhook payload.`);
+        }
 
         const rawEmailBody = (action.config as any)?.body || "This email was automatically sent by your worker process.";
         const emailBody = parseDynamicData(rawEmailBody, webhookPayload) || rawEmailBody;
