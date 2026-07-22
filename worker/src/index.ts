@@ -1,15 +1,8 @@
 import { Kafka } from "kafkajs";
 import { db, actions, triggerOutbox, zapRuns } from "@zapier/database";
 import { eq, asc } from "drizzle-orm";
-import nodemailer from "nodemailer";
-import axios from "axios";
-
-function parseDynamicData(template: string, payload: any): string {
-  if (!template) return "";
-  return template.replace(/\{payload\.([^}]+)\}/g, (_, key) => {
-    return payload[key] !== undefined ? String(payload[key]) : "";
-  });
-}
+import { ActionRegistry } from "./actions";
+import { transporter } from "./actions/email";
 
 const TOPIC_NAME = "zap-events";
 
@@ -19,16 +12,6 @@ const kafka = new Kafka({
   retry: {
     initialRetryTime: 300, // Wait 300ms before the first retry
     retries: 5, // Try connecting 5 times before finally throwing an error
-  },
-});
-
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
   },
 });
 
@@ -74,53 +57,20 @@ async function processZapEvent(messageValue: Buffer) {
         .where(eq(zapRuns.id, run.id));
       return;
     }
+
+
     for (const action of zapActions) {
-      console.log(
-        `Executing step ${action.actionOrder}: ${action.availableActionsId}`,
-      );
+      console.log(`Executing step ${action.actionOrder}: ${action.availableActionsId}`);
 
-      if (action.availableActionsId === "email") {
-        const rawEmailTo = (action.config as any)?.to || "yuvrajbansal30dec@gmail.com";
-        const emailTo = parseDynamicData(rawEmailTo, webhookPayload);
-        
-        if (!emailTo || emailTo.trim() === "") {
-          throw new Error(`Cannot send email: 'To' address resolved to empty string. Check your webhook payload.`);
-        }
-
-        const rawEmailBody = (action.config as any)?.body || "This email was automatically sent by your worker process.";
-        const emailBody = parseDynamicData(rawEmailBody, webhookPayload) || rawEmailBody;
-
-        console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
-
-        await transporter.sendMail({
-          from: '"Zapier" <bot@zapier.com>',
-          to: emailTo,
-          subject: "Automated Zap Execution!",
-          text: emailBody,
-        });
-        console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
-      } else if (action.availableActionsId === "slack") {
-        console.log(`💬 SIMULATED: Sending Slack message...`);
-        const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-        console.log(slackWebhookUrl);
-        if (!slackWebhookUrl) {
-          throw new Error("Slack Webhook URL is missing!");
-        }
-
-        const rawMessage = (action.config as any)?.message || `🚀 *New Zap Executed!*\n\nPayload received: ${JSON.stringify(webhookPayload)}`;
-        const slackMessage = parseDynamicData(rawMessage, webhookPayload);
-
-        try {
-          await axios.post(slackWebhookUrl, {
-            text: slackMessage,
-          });
-          console.log(`💬 REAL SLACK MESSAGE SENT!`);
-        } catch (slackError) {
-          console.error("Failed to send Slack message", slackError);
-          throw new Error("Slack action failed"); // This will trigger your catch block and mark the run as failed!
-        }
+      const actionFunction = ActionRegistry[action.availableActionsId];
+      if(!actionFunction){
+        throw new Error(`Unsupported action type: ${action.availableActionsId}`);
       }
+
+      await actionFunction(action.config, webhookPayload);
     }
+
+
     console.log(`Zap Run ${run.id} Completed Successfully!`);
     await db
       .update(zapRuns)
