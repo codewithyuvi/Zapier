@@ -12,7 +12,11 @@ export default function ZapBuilder() {
   const router = useRouter();
 
   const [title, setTitle] = useState('Untitled Zap')
-  const [actions, setActions] = useState<any[]>([{ id: 1, type: "email", config: {} }]);
+  const [actions, setActions] = useState<any[]>([{ 
+    id: 1, 
+    type: "email", 
+    config: { to: "{payload.email}", body: "Hello {payload.name}!" } 
+  }]);
 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
@@ -21,7 +25,13 @@ export default function ZapBuilder() {
   }, [router]);
 
   const addAction = (type: string) => {
-    setActions([...actions, { id: Date.now(), type, config: {} }]);
+    let defaultConfig = {};
+    if (type === "email") {
+      defaultConfig = { to: "{payload.email}", body: "Hello {payload.name}!" };
+    } else if (type === "slack") {
+      defaultConfig = { message: "New event from {payload.name}" };
+    }
+    setActions([...actions, { id: Date.now(), type, config: defaultConfig }]);
   };
 
   const removeAction = (id: number) => {

@@ -12,7 +12,7 @@ export const transporter = nodemailer.createTransport({
 });
 
 export async function executeEmail(config: any, webhookPayload: any){
-    const rawEmailTo = (config as any)?.to || "yuvrajbansal30dec@gmail.com";
+    const rawEmailTo = (config as any)?.to || "{payload.email}";
     const emailTo = parseDynamicData(rawEmailTo, webhookPayload);
     
     if (!emailTo || emailTo.trim() === "") {
