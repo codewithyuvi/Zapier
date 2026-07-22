@@ -6,12 +6,12 @@ export const trpc = createTRPCClient<AppRouter>({
     httpBatchLink({
       url: 'http://localhost:3001/trpc',
       headers() {
-        let userId = '1';
+        let token = '';
         if (typeof window !== 'undefined') {
-          userId = localStorage.getItem('userId') || '1';
+          token = localStorage.getItem('token') || '';
         }
         return {
-          authorization: userId,
+          authorization: `Bearer ${token}`,
         };
       },
     }),

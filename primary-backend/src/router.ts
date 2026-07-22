@@ -2,14 +2,48 @@ import {config, z} from "zod";
 import { router, protectedProcedure, publicProcedure } from "./trpc.js";
 import {db,zaps,triggers, actions, users, availableActions, availableTriggers , zapRuns} from '@zapier/database';
 import { eq, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
 
 export const appRouter = router({
 
-    createUser: publicProcedure
-    .input(z.object({ name: z.string(), email: z.string().email() }))
+    signup: publicProcedure
+    .input(z.object({ name: z.string(), email: z.string().email(), password: z.string().min(6) }))
     .mutation(async ({ input }) => {
-      const result = await db.insert(users).values(input).returning();
-      return result[0];
+      const existingUser = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, input.email)
+      });
+      if (existingUser) {
+        throw new Error("User with this email already exists");
+      }
+      const hashedPassword = await bcrypt.hash(input.password, 10);
+      const result = await db.insert(users).values({
+        name: input.name,
+        email: input.email,
+        password: hashedPassword
+      }).returning();
+      const user = result[0];
+      const token = jwt.sign({ userId: user!.id }, JWT_SECRET, { expiresIn: '7d' });
+      return { token, user: { id: user!.id, name: user!.name, email: user!.email } };
+    }),
+
+    login: publicProcedure
+    .input(z.object({ email: z.string().email(), password: z.string() }))
+    .mutation(async ({ input }) => {
+      const user = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, input.email)
+      });
+      if (!user) {
+        throw new Error("Invalid email or password");
+      }
+      const isPasswordValid = await bcrypt.compare(input.password, user.password);
+      if (!isPasswordValid) {
+        throw new Error("Invalid email or password");
+      }
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      return { token, user: { id: user.id, name: user.name, email: user.email } };
     }),
 
     //creating a new endpoint named 'createZap'

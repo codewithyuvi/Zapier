@@ -3,21 +3,31 @@ import Link from "next/link";
 import { Zap, Plus, ArrowRight, Settings, Activity, Clock } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  
+  const router = useRouter();
   const {data: zaps, isLoading} = useQuery({
     queryKey: ['zaps'],
     queryFn: () => trpc.getZaps.query()
-  })
+  });
+  const [userName, setUserName] = useState("");
 
-  const createUserMutation = useMutation({
-    mutationFn : () => trpc.createUser.mutate({name: 'testuser', email: 'test@gmail.com'}),
-    onSuccess: (data) => {
-      localStorage.setItem('userId', data.id.toString());
-      alert(`user created! ${data.name}`)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    } else {
+      setUserName(localStorage.getItem("userName") || "");
     }
-  })
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    router.push("/login");
+  };
 
   return (
     <div className="min-h-screen bg-[#0f0f13] text-[#ededed] p-8 font-sans selection:bg-purple-500/30">
@@ -31,12 +41,13 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold tracking-tight">Antigravity Automations</h1>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          {userName && <span className="text-gray-400 mr-2">Hello, {userName}</span>}
           <button 
-            onClick={() => createUserMutation.mutate()}
-            className="flex items-center gap-2 bg-purple-600/20 text-purple-400 px-5 py-2.5 rounded-full font-medium hover:bg-purple-600/30 transition-all border border-purple-500/30"
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-red-600/20 text-red-400 px-5 py-2.5 rounded-full font-medium hover:bg-red-600/30 transition-all border border-red-500/30"
           >
-            Create Test User
+            Logout
           </button>
           
           <Link 

@@ -4,14 +4,23 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function HistoryPage() {
   
-  // Fetch the execution history from our new tRPC endpoint!
   const { data: runs, isLoading } = useQuery({
     queryKey: ['zapRuns'],
     queryFn: () => trpc.getZapRuns.query()
   });
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      router.push("/login");
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-[#0f0f13] text-[#ededed] p-8 font-sans selection:bg-purple-500/30">

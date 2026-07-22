@@ -1,23 +1,30 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { users } from "@zapier/database";
 
-export const t = initTRPC.context<{userId? : string}>().create();
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretjwtkey";
+
+export const t = initTRPC.context<{token? : string}>().create();
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
 
 const isAuthed = t.middleware( ({next, ctx}) => {
-    //will write jwt logic here later
-
-    if(!ctx.userId){
+    if(!ctx.token){
         throw new TRPCError({code: 'UNAUTHORIZED'});
     }
 
-    return next({
-        ctx: {
-            userId: parseInt(ctx.userId)
-        }
-    })
-} )
+    try {
+        const payload = jwt.verify(ctx.token, JWT_SECRET) as { userId: number };
+        return next({
+            ctx: {
+                userId: payload.userId
+            }
+        });
+    } catch (error) {
+        throw new TRPCError({code: 'UNAUTHORIZED'});
+    }
+} );
 
 export const protectedProcedure = t.procedure.use(isAuthed);

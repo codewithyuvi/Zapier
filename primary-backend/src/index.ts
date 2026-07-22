@@ -21,9 +21,9 @@ app.use(
 
         // We look at the HTTP headers of the incoming request.
         // We are looking for an "authorization" header. 
-        // For now, if we send "1" in the header, tRPC will think we are user ID 1!
         if(authHeader){
-            return { userId: authHeader}; 
+            const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+            if (token) return { token }; 
         }
 
         return {};

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Webhook, Mail, MessageSquare, Plus, Save, Play, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 
@@ -12,6 +13,12 @@ export default function ZapBuilder() {
 
   const [title, setTitle] = useState('Untitled Zap')
   const [actions, setActions] = useState<any[]>([{ id: 1, type: "email", config: {} }]);
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      router.push("/login");
+    }
+  }, [router]);
 
   const addAction = (type: string) => {
     setActions([...actions, { id: Date.now(), type, config: {} }]);
