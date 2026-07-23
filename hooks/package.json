@@ -12,10 +12,14 @@
   "type": "module",
   "dependencies": {
     "@zapier/database": "workspace:*",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
+    "ioredis": "^5.11.1",
+    "rate-limit-redis": "^6.0.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/express-rate-limit": "^6.0.2",
     "@types/node": "^26.0.1",
     "ts-node": "^10.9.2",
     "tsx": "^4.22.4",
