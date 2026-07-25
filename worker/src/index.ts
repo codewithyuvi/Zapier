@@ -58,18 +58,20 @@ async function processZapEvent(messageValue: Buffer) {
       return;
     }
 
-
     for (const action of zapActions) {
-      console.log(`Executing step ${action.actionOrder}: ${action.availableActionsId}`);
+      console.log(
+        `Executing step ${action.actionOrder}: ${action.availableActionsId}`,
+      );
 
       const actionFunction = ActionRegistry[action.availableActionsId];
-      if(!actionFunction){
-        throw new Error(`Unsupported action type: ${action.availableActionsId}`);
+      if (!actionFunction) {
+        throw new Error(
+          `Unsupported action type: ${action.availableActionsId}`,
+        );
       }
 
       await actionFunction(action.config, webhookPayload);
     }
-
 
     console.log(`Zap Run ${run.id} Completed Successfully!`);
     await db

@@ -11,24 +11,29 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-export async function executeEmail(config: any, webhookPayload: any){
-    const rawEmailTo = (config as any)?.to || "{payload.email}";
-    const emailTo = parseDynamicData(rawEmailTo, webhookPayload);
-    
-    if (!emailTo || emailTo.trim() === "") {
-      throw new Error(`Cannot send email: 'To' address resolved to empty string. Check your webhook payload.`);        
-    }
+export async function executeEmail(config: any, webhookPayload: any) {
+  const rawEmailTo = (config as any)?.to || "{payload.email}";
+  const emailTo = parseDynamicData(rawEmailTo, webhookPayload);
 
-    const rawEmailBody = (config as any)?.body || "This email was automatically sent by your worker process.";
-    const emailBody = parseDynamicData(rawEmailBody, webhookPayload) || rawEmailBody;
+  if (!emailTo || emailTo.trim() === "") {
+    throw new Error(
+      `Cannot send email: 'To' address resolved to empty string. Check your webhook payload.`,
+    );
+  }
 
-    console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
+  const rawEmailBody =
+    (config as any)?.body ||
+    "This email was automatically sent by your worker process.";
+  const emailBody =
+    parseDynamicData(rawEmailBody, webhookPayload) || rawEmailBody;
 
-    await transporter.sendMail({
-        from: '"Zapier" <bot@zapier.com>',
-        to: emailTo,
-        subject: "Automated Zap Execution!",
-        text: emailBody,
-    });
-    console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
+  console.log(`✉️ SIMULATED: Sending email to ${emailTo}`);
+
+  await transporter.sendMail({
+    from: '"Zapier" <bot@zapier.com>',
+    to: emailTo,
+    subject: "Automated Zap Execution!",
+    text: emailBody,
+  });
+  console.log(`✉️ REAL EMAIL SENT to ${emailTo}!`);
 }
