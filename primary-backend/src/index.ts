@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import * as trpcExpress from '@trpc/server/adapters/express';
-import { appRouter } from './router.js';
+import express from "express";
+import cors from "cors";
+import * as trpcExpress from "@trpc/server/adapters/express";
+import { appRouter } from "./router.js";
 
 const app = express();
 // Set the port this microservice will run on
@@ -11,25 +11,26 @@ app.use(cors());
 app.use(express.json());
 
 app.use(
-  '/trpc',
+  "/trpc",
   trpcExpress.createExpressMiddleware({
     // Pass in our router
     router: appRouter,
     // createContext runs on every incoming request. It builds the "ctx" object we use in our routes.
-    createContext:  ({ req }) => {
-        const authHeader = req.headers.authorization;
+    createContext: ({ req }) => {
+      const authHeader = req.headers.authorization;
 
-        // We look at the HTTP headers of the incoming request.
-        // We are looking for an "authorization" header. 
-        if(authHeader){
-            const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-            if (token) return { token }; 
-        }
+      // We look at the HTTP headers of the incoming request.
+      // We are looking for an "authorization" header.
+      if (authHeader) {
+        const token = authHeader.startsWith("Bearer ")
+          ? authHeader.split(" ")[1]
+          : authHeader;
+        if (token) return { token };
+      }
 
-        return {};
-        
-    }
-  })
+      return {};
+    },
+  }),
 );
 
 // Start the Express server and listen for incoming traffic
