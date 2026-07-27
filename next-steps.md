@@ -1,3 +1,66 @@
+Gmail Trigger & AI Discord Router
+This plan covers adding two powerful new integrations to our Zapier clone: a Gmail Trigger (which polls your inbox for new emails) and an AI Discord Router Action (which uses Google Gemini to classify emails and route them to specific Discord channels).
+
+User Review Required
+WARNING
+
+Google Cloud Setup Required for Gmail Because we are running locally, we cannot receive "Push Webhooks" directly from Google (as our localhost is not publicly accessible on the internet). Therefore, we must build a Poller Service that pulls emails from the Gmail API every few minutes.
+
+To do this, you will need to:
+
+Go to the Google Cloud Console.
+Create a Project and enable the Gmail API.
+Create OAuth 2.0 Client IDs (Desktop App) and download the credentials.json. Are you comfortable doing this manual setup step?
+IMPORTANT
+
+Gemini API Key Required For the AI Router, you will need a free API key from Google AI Studio. We will add this to the .env file of our worker service.
+
+Proposed Changes
+Database Layer
+We need to add the new Trigger and Action types to our lookup tables, and optionally store Google OAuth tokens if we want to handle multiple users later (though for this prototype, storing the token locally on disk for a single user is easiest).
+
+[MODIFY] database/src/seed.ts (or wherever you insert seed data)
+Insert { id: "gmail", name: "Gmail" } into availableTriggers
+Insert { id: "discord_ai", name: "AI Discord Router" } into availableActions
+New poller Service (The Gmail Trigger)
+We will create a brand new microservice (like sweeper or hooks) called poller.
+
+[NEW] poller/src/index.ts
+Runs a node-cron job every 1-5 minutes.
+Uses the googleapis npm package to check the authenticated user's inbox for messages received since the last check.
+If a new email is found (e.g., matching a label like "UNREAD" or a specific sender), it formats the email into a JSON payload ({ subject, body, sender }).
+It inserts this payload into the triggerOutbox table (just like the hooks service does!), meaning our existing sweeper and processor will pick it up automatically!
+Worker Service (The AI Action)
+We will add the new AI Action to the worker, which evaluates the payload and routes it.
+
+[MODIFY] worker/package.json
+Install @google/generative-ai package.
+[NEW] worker/src/actions/discord_ai.ts
+Initialize the Gemini API client using process.env.GEMINI_API_KEY.
+Pass the {payload.body} to Gemini with a strict prompt: "Classify this email strictly as one of: [OS, Compiler, Internship, Workshop, General]. Email text: ..."
+Use a switch statement based on Gemini's response to select one of 5 different Discord Webhook URLs.
+Make a POST request to the selected Discord Webhook URL.
+[MODIFY] worker/src/actions/index.ts
+Register "discord_ai" in the ActionRegistry.
+Frontend Service
+We need to update the Zap Builder UI to support our new integrations.
+
+[MODIFY] frontend/src/app/create/page.tsx
+Add a Gmail trigger button (alongside the Webhook trigger).
+Add an AI Discord Router action button.
+Provide a default config block for the AI Router so it saves properly to the database.
+Verification Plan
+Automated/Manual Verification
+Verify the poller successfully authenticates with Google and can read the latest email.
+Verify the poller successfully injects a row into the triggerOutbox.
+Verify the worker correctly receives the payload, successfully calls the Gemini API, parses the response, and posts to the correct Discord channel.
+
+
+
+
+
+
+
 # Master Roadmap: Zapier vs Zapier2.0
 
 After thoroughly analyzing the `Zapier2.0` repository, I have combined our findings into a single, comprehensive roadmap. Your friend built a cloud-native, enterprise-scale distributed system. 
