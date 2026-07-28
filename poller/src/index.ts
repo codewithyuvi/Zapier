@@ -8,26 +8,7 @@ import { google } from 'googleapis';
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
-// This function loads my master key
-async function authorize() {
-
-    const content = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
-    const keys = JSON.parse(content);
-    const key = keys.installed || keys.web;
-
-    const OauthClient = new google.auth.OAuth2(key.client_id, key.client_secret);
-
-    const tokenContent = await fs.readFile(TOKEN_PATH, 'utf-8');
-    const token = JSON.parse(tokenContent);
-
-    OauthClient.setCredentials({
-        refresh_token: token.refresh_token
-    });
-
-    return OauthClient;
-}
-
-async function setupGmailLabel(auth: any, userId: string){
+async function setupGmailLabel(auth: any, userId: number){
     const gmail = google.gmail({version: 'v1', auth});
     
     try {
@@ -53,7 +34,7 @@ async function setupGmailLabel(auth: any, userId: string){
             console.log(`Created new Zapier label! ID: ${labelId}`);
         }
 
-        await db.update(users).set({ gmailLabelId: labelId }).where(eq(users.id, parseInt(userId.toString())));
+        await db.update(users).set({ gmailLabelId: labelId }).where(eq(users.id, userId));
         return labelId;
     } catch (error) {
         console.error("Failed to setup Gmail label:", error);
@@ -141,25 +122,26 @@ async function checkEmails(auth: any, labelId: string, zapId: number){
 }
 
 async function main() {
-  const auth = await authorize();
 
   async function pollAllUsers() {
     console.log("Polling database for active Gmail Zaps...");
     
     // Query the DB for all active Zaps that use the "gmail" trigger
-    const activeGmailZaps = await db
-      .select({
-        zapId: zaps.id,
-        userId: zaps.userId,
-      })
-      .from(zaps)
-      .innerJoin(triggers, eq(zaps.id, triggers.zapId))
-      .where(
-        and(
-          eq(triggers.availableTriggersId, 'gmail'),
-          eq(zaps.isActive, "true") 
-        )
-      );
+        const activeGmailZaps = await db
+            .select({
+                zapId: zaps.id,
+                userId: zaps.userId,
+                googleRefreshToken: users.googleRefreshToken, 
+            })
+            .from(zaps)
+            .innerJoin(triggers, eq(zaps.id, triggers.zapId))
+            .innerJoin(users, eq(zaps.userId, users.id)) 
+            .where(
+                and(
+                eq(triggers.availableTriggersId, 'gmail'),
+                eq(zaps.isActive, "true") 
+                )
+        );
 
     if (activeGmailZaps.length === 0) {
       console.log("No active Gmail zaps found in database.");
@@ -168,12 +150,23 @@ async function main() {
 
     // Loop through every active Zap and check their emails!
     for (const zap of activeGmailZaps) {
-      console.log(`Processing Zap ID: ${zap.zapId} for User ID: ${zap.userId}`);
+      if (!zap.googleRefreshToken) {
+        console.log(`User ${zap.userId} hasn't connected Gmail yet. Skipping...`);
+        continue;
+      }
+
+      // Read the credentials.json (this is your Developer App ID, so it stays local!)
+      const content = await fs.readFile(CREDENTIALS_PATH, 'utf-8');
+      const keys = JSON.parse(content);
+      const key = keys.installed || keys.web;
       
-      // Setup the label dynamically for this specific user
+      const auth = new google.auth.OAuth2(key.client_id, key.client_secret);
+      
+      // Inject the user's unique refresh token from the database!
+      auth.setCredentials({ refresh_token: zap.googleRefreshToken });
+
+      // Run the setup and fetch!
       const labelId = await setupGmailLabel(auth, zap.userId);
-      
-      // Pass the dynamic zapId into checkEmails!
       await checkEmails(auth, labelId, zap.zapId);
     }
   }

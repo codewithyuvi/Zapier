@@ -1,12 +1,11 @@
-import { promises as fs } from 'fs';
 import path from 'path';
 import process from 'process';
 import { authenticate } from '@google-cloud/local-auth';
+import { db, users } from '@zapier/database';
+import { eq } from 'drizzle-orm';
 
 // We are asking Google for permission to READ emails.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.modify'];
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-console.log(TOKEN_PATH);
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 async function authorize() {
@@ -19,16 +18,15 @@ async function authorize() {
   });
   
   // Save the master key!
-  if (client.credentials) {
-    const payload = JSON.stringify({
-      type: 'authorized_user',
-      client_id: client._clientId,
-      client_secret: client._clientSecret,
-      refresh_token: client.credentials.refresh_token,
-    });
+    if (client.credentials && client.credentials.refresh_token) {
+    console.log("Saving refresh token to database...");
     
-    await fs.writeFile(TOKEN_PATH, payload);
-    console.log("Successfully generated and saved token.json!");
+    // Save the token to User ID 1
+    await db.update(users)
+      .set({ googleRefreshToken: client.credentials.refresh_token })
+      .where(eq(users.id, 1));
+      
+    console.log("Successfully saved master key to the database!");
   }
 }
 

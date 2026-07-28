@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 256 }).notNull(),
   password: varchar("password", { length: 256 }).notNull().default(""),
   gmailLabelId: varchar("gmail_label_id", { length: 256 }),
+  googleRefreshToken: varchar("google_refresh_token", { length: 256 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 // LOOKUP TABLES (The available integrations)
