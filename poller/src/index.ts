@@ -1,7 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import process from 'process';
-
+import { db, triggerOutbox, users } from '@zapier/database';
+import { eq } from 'drizzle-orm';
 import { google } from 'googleapis';
 
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
@@ -24,6 +25,40 @@ async function authorize() {
     });
 
     return OauthClient;
+}
+
+async function setupGmailLabel(auth: any, userId: string){
+    const gmail = google.gmail({version: 'v1', auth});
+    
+    try {
+        const labelsRes = await gmail.users.labels.list({ userId: 'me' });
+        const existingLabel = labelsRes.data.labels?.find(label => label.name === 'Zapier');
+
+        let labelId = '';
+
+        if (existingLabel && existingLabel.id) {
+            console.log(`Found existing Zapier label! ID: ${existingLabel.id}`);
+            labelId = existingLabel.id;
+        } else {
+            console.log("Zapier label not found. Creating it now...");
+            const newLabelRes = await gmail.users.labels.create({
+                userId: 'me',
+                requestBody: {
+                name: 'Zapier',
+                labelListVisibility: 'labelShow',
+                messageListVisibility: 'show'
+                }
+            });
+            labelId = newLabelRes.data.id!;
+            console.log(`Created new Zapier label! ID: ${labelId}`);
+        }
+
+        await db.update(users).set({ gmailLabelId: labelId }).where(eq(users.id, parseInt(userId.toString())));
+        return labelId;
+    } catch (error) {
+        console.error("Failed to setup Gmail label:", error);
+        throw error;
+    }
 }
 
 // This function actually reads my Gmail inbox
@@ -84,6 +119,20 @@ async function checkEmails(auth: any){
         console.log(`📌 Subject: ${subject}`);
         console.log(`📝 Body: ${decodedBody}`);
 
+        // push to db outbox
+        console.log("pushing to triggerOutbox db");
+        await db.insert(triggerOutbox).values({
+            zapId: 749,
+            payload:{
+                subject: subject,
+                sender: sender,
+                body: decodedBody
+            },
+            status: 'pending'
+        });
+        console.log("Successfully queued in database!");
+
+    
 
 
     } catch (err){

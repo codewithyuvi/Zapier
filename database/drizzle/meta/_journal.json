@@ -15,6 +15,13 @@
       "when": 1783658387503,
       "tag": "0001_cynical_fallen_one",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785264309731,
+      "tag": "0002_tearful_warbird",
+      "breakpoints": true
     }
   ]
 }
