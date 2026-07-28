@@ -4,7 +4,7 @@ import process from 'process';
 import { authenticate } from '@google-cloud/local-auth';
 
 // We are asking Google for permission to READ emails.
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/gmail.modify'];
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 console.log(TOKEN_PATH);
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
