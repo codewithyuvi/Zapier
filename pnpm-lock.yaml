@@ -329,6 +329,9 @@ importers:
       '@google-cloud/local-auth':
         specifier: ^3.0.1
         version: 3.0.1
+      '@zapier/database':
+        specifier: workspace:*
+        version: link:../database
       googleapis:
         specifier: ^173.0.0
         version: 173.0.0
