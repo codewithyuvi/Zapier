@@ -5,7 +5,6 @@ import { db, triggerOutbox, users, zaps, triggers } from '@zapier/database';
 import { eq, and } from 'drizzle-orm';
 import { google } from 'googleapis';
 
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
 async function setupGmailLabel(auth: any, userId: number){

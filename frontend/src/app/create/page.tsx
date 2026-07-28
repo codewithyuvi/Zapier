@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Webhook, Mail, MessageSquare, Plus, Save, Play, X, Zap } from "lucide-react";
+import { ArrowLeft, Webhook, Mail, MessageSquare, Plus, Save, Play, X, Bot, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
@@ -12,6 +12,8 @@ export default function ZapBuilder() {
   const router = useRouter();
 
   const [title, setTitle] = useState('Untitled Zap')
+  const [trigger, setTrigger] = useState('webhook');
+  const [isTriggerMenuOpen, setIsTriggerMenuOpen] = useState(false);
   const [actions, setActions] = useState<any[]>([{ 
     id: 1, 
     type: "email", 
@@ -30,6 +32,8 @@ export default function ZapBuilder() {
       defaultConfig = { to: "{payload.email}", body: "Hello {payload.name}!" };
     } else if (type === "slack") {
       defaultConfig = { message: "New event from {payload.name}" };
+    } else if (type === "discord_ai") {
+      defaultConfig = { webhookUrl: "" };
     }
     setActions([...actions, { id: Date.now(), type, config: defaultConfig }]);
   };
@@ -53,15 +57,13 @@ export default function ZapBuilder() {
     onError: (err) => {
       alert(`Failed to publish: ${err.message}`);
     }
-
-
   })
 
   const handlePublish = () => {
     createZap.mutate({
       title: title,
       trigger: {
-        availableTriggerId: "webhook", 
+        availableTriggerId: trigger, 
         config: {}
       },
       actions: actions.map(action => ({
@@ -113,24 +115,63 @@ export default function ZapBuilder() {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-t-2xl"></div>
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 border border-purple-500/30">
-              <Webhook className="w-6 h-6 text-purple-400" />
+              {trigger === 'webhook' ? <Webhook className="w-6 h-6 text-purple-400" /> : <Mail className="w-6 h-6 text-red-400" />}
             </div>
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <div className="text-xs font-semibold tracking-wider text-purple-400 uppercase mb-1">1. Trigger</div>
-              <h3 className="text-xl font-medium mb-1">Catch Hook</h3>
-              <p className="text-sm text-gray-400">Waits for a new POST request to a unique URL.</p>
               
-              <div className="mt-4 p-3 bg-black/40 rounded-lg border border-white/5 font-mono text-xs text-gray-400 flex items-center justify-between">
-                <span className="truncate">https://hooks.antigravity.io/catch/user_1/zap_...</span>
-                <button className="text-purple-400 hover:text-purple-300 ml-2 shrink-0">Copy</button>
-              </div>
+              {/* Dropdown Toggle */}
+              <button 
+                onClick={() => setIsTriggerMenuOpen(!isTriggerMenuOpen)}
+                className="flex items-center gap-2 text-xl font-medium mb-1 hover:text-purple-300 transition-colors"
+              >
+                {trigger === 'webhook' ? 'Catch Hook' : 'Gmail Email'}
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              </button>
+              
+              <p className="text-sm text-gray-400">
+                {trigger === 'webhook' ? 'Waits for a new POST request to a unique URL.' : 'Triggers when a new email arrives in your Gmail.'}
+              </p>
+              
+              {/* Dropdown Menu */}
+              {isTriggerMenuOpen && (
+                <div className="absolute top-16 left-0 w-64 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden">
+                  <button 
+                    onClick={() => { setTrigger('webhook'); setIsTriggerMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors border-b border-white/5"
+                  >
+                    <Webhook className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <div className="font-medium">Catch Hook</div>
+                      <div className="text-xs text-gray-400">Instant POST trigger</div>
+                    </div>
+                  </button>
+                  <button 
+                    onClick={() => { setTrigger('gmail'); setIsTriggerMenuOpen(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors"
+                  >
+                    <Mail className="w-5 h-5 text-red-400" />
+                    <div>
+                      <div className="font-medium">Gmail</div>
+                      <div className="text-xs text-gray-400">Polls unread emails</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {trigger === 'webhook' && (
+                <div className="mt-4 p-3 bg-black/40 rounded-lg border border-white/5 font-mono text-xs text-gray-400 flex items-center justify-between">
+                  <span className="truncate">https://hooks.antigravity.io/catch/user_1/zap_...</span>
+                  <button className="text-purple-400 hover:text-purple-300 ml-2 shrink-0">Copy</button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Dynamic Action Nodes */}
         {actions.map((action, index) => (
-          <div key={action.id} className="flex flex-col items-center w-full">
+          <div key={action.id} className="flex flex-col items-center w-full z-0">
             {/* Connector Line */}
             <div className="w-px h-12 bg-gradient-to-b from-purple-500/50 to-white/20"></div>
             
@@ -144,14 +185,26 @@ export default function ZapBuilder() {
               </button>
               
               <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${action.type === 'email' ? 'bg-blue-500/20 border-blue-500/30' : 'bg-green-500/20 border-green-500/30'}`}>
-                  {action.type === 'email' ? <Mail className="w-6 h-6 text-blue-400" /> : <MessageSquare className="w-6 h-6 text-green-400" />}
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${
+                  action.type === 'email' ? 'bg-blue-500/20 border-blue-500/30' : 
+                  action.type === 'slack' ? 'bg-green-500/20 border-green-500/30' : 
+                  'bg-indigo-500/20 border-indigo-500/30'
+                }`}>
+                  {action.type === 'email' && <Mail className="w-6 h-6 text-blue-400" />}
+                  {action.type === 'slack' && <MessageSquare className="w-6 h-6 text-green-400" />}
+                  {action.type === 'discord_ai' && <Bot className="w-6 h-6 text-indigo-400" />}
                 </div>
                 <div className="flex-1">
                   <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase mb-1">{index + 2}. Action</div>
-                  <h3 className="text-xl font-medium mb-1">{action.type === 'email' ? 'Send Email' : 'Send Slack Message'}</h3>
+                  <h3 className="text-xl font-medium mb-1">
+                    {action.type === 'email' ? 'Send Email' : 
+                     action.type === 'slack' ? 'Send Slack Message' : 
+                     'Discord AI Summary'}
+                  </h3>
                   <p className="text-sm text-gray-400 mb-4">
-                    {action.type === 'email' ? 'Sends an outbound email via SMTP.' : 'Posts a message to a Slack channel.'}
+                    {action.type === 'email' ? 'Sends an outbound email via SMTP.' : 
+                     action.type === 'slack' ? 'Posts a message to a Slack channel.' :
+                     'Summarizes input with Gemini AI and posts to Discord.'}
                   </p>
 
                   {/* Dynamic config fields */}
@@ -192,6 +245,24 @@ export default function ZapBuilder() {
                       </div>
                     </div>
                   )}
+
+                  {action.type === 'discord_ai' && (
+                    <div className="space-y-3 mt-4">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Discord Webhook URL</label>
+                        <input 
+                          type="text" 
+                          placeholder="https://discord.com/api/webhooks/..." 
+                          className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-500/50"
+                          value={action.config?.webhookUrl || ''}
+                          onChange={(e) => updateActionConfig(action.id, 'webhookUrl', e.target.value)}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 bg-indigo-500/10 p-2 rounded border border-indigo-500/20">
+                        This action will automatically summarize the <b>{'{payload.body}'}</b> using Gemini and send it to the webhook.
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -202,14 +273,14 @@ export default function ZapBuilder() {
         <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent"></div>
         
         {/* Add Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap justify-center max-w-lg">
           <button 
             onClick={() => addAction('email')}
             className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-sm font-medium shadow-lg"
           >
             <Plus className="w-4 h-4" />
             <Mail className="w-4 h-4 text-blue-400" />
-            Add Email
+            Email
           </button>
           
           <button 
@@ -218,7 +289,16 @@ export default function ZapBuilder() {
           >
             <Plus className="w-4 h-4" />
             <MessageSquare className="w-4 h-4 text-green-400" />
-            Add Slack
+            Slack
+          </button>
+
+          <button 
+            onClick={() => addAction('discord_ai')}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-sm font-medium shadow-lg"
+          >
+            <Plus className="w-4 h-4" />
+            <Bot className="w-4 h-4 text-indigo-400" />
+            Discord AI
           </button>
         </div>
 
