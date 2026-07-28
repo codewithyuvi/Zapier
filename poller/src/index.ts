@@ -52,7 +52,7 @@ async function checkEmails(auth: any, labelId: string, zapId: number){
         // fetching id of unread emails from google
         const res = await gmail.users.messages.list({
             userId: 'me',
-            q: 'is:unread',
+            q: 'is:unread -label:Zapier',
             maxResults: 1000,
         });
 
@@ -113,6 +113,15 @@ async function checkEmails(auth: any, labelId: string, zapId: number){
         });
         console.log("Successfully queued in database!");
 
+            // Apply the custom Zapier label so it gets ignored next time!
+            await gmail.users.messages.modify({
+                userId: 'me',
+                id: messageId,
+                requestBody: { 
+                    addLabelIds: [labelId] 
+                }
+            });
+            console.log("Applied 'Zapier' label to the email.");
     
 
 

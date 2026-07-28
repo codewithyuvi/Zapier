@@ -24,7 +24,7 @@ async function authorize() {
     // Save the token to User ID 1
     await db.update(users)
       .set({ googleRefreshToken: client.credentials.refresh_token })
-      .where(eq(users.id, 1));
+      .where(eq(users.id, 746));
       
     console.log("Successfully saved master key to the database!");
   }
