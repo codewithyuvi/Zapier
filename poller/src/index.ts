@@ -1,8 +1,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import process from 'process';
-import { db, triggerOutbox, users } from '@zapier/database';
-import { eq } from 'drizzle-orm';
+import { db, triggerOutbox, users, zaps, triggers } from '@zapier/database';
+import { eq, and } from 'drizzle-orm';
 import { google } from 'googleapis';
 
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
@@ -62,7 +62,7 @@ async function setupGmailLabel(auth: any, userId: string){
 }
 
 // This function actually reads my Gmail inbox
-async function checkEmails(auth: any){
+async function checkEmails(auth: any, labelId: string, zapId: number){
     const gmail = google.gmail({version: 'v1', auth});
 
     console.log("Checking for new unread emails...");
@@ -122,7 +122,7 @@ async function checkEmails(auth: any){
         // push to db outbox
         console.log("pushing to triggerOutbox db");
         await db.insert(triggerOutbox).values({
-            zapId: 749,
+            zapId: zapId,
             payload:{
                 subject: subject,
                 sender: sender,
@@ -140,12 +140,47 @@ async function checkEmails(auth: any){
     }
 }
 
-async function main(){
-    const auth = await authorize();
-    await checkEmails(auth);
-    setInterval(() => {
-        checkEmails(auth);
-    }, 10000);
+async function main() {
+  const auth = await authorize();
+
+  async function pollAllUsers() {
+    console.log("Polling database for active Gmail Zaps...");
+    
+    // Query the DB for all active Zaps that use the "gmail" trigger
+    const activeGmailZaps = await db
+      .select({
+        zapId: zaps.id,
+        userId: zaps.userId,
+      })
+      .from(zaps)
+      .innerJoin(triggers, eq(zaps.id, triggers.zapId))
+      .where(
+        and(
+          eq(triggers.availableTriggersId, 'gmail'),
+          eq(zaps.isActive, "true") 
+        )
+      );
+
+    if (activeGmailZaps.length === 0) {
+      console.log("No active Gmail zaps found in database.");
+      return;
+    }
+
+    // Loop through every active Zap and check their emails!
+    for (const zap of activeGmailZaps) {
+      console.log(`Processing Zap ID: ${zap.zapId} for User ID: ${zap.userId}`);
+      
+      // Setup the label dynamically for this specific user
+      const labelId = await setupGmailLabel(auth, zap.userId);
+      
+      // Pass the dynamic zapId into checkEmails!
+      await checkEmails(auth, labelId, zap.zapId);
+    }
+  }
+
+  // Run immediately, then every 10 seconds
+  await pollAllUsers();
+  setInterval(pollAllUsers, 10000); 
 }
 
 main().catch(console.error);
