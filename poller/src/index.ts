@@ -3,7 +3,6 @@ import path from 'path';
 import process from 'process';
 
 import { google } from 'googleapis';
-import { json } from 'stream/consumers';
 
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
