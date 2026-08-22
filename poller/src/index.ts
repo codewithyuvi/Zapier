@@ -48,7 +48,7 @@ async function checkEmails(auth: any, labelId: string, zapId: number){
     console.log("Checking for new unread emails...");
 
     try{
-        // fetching id of unread emails from google
+        // fetching all unread emails so the AI can decide
         const res = await gmail.users.messages.list({
             userId: 'me',
             q: 'is:unread -label:Zapier',
