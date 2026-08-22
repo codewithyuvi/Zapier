@@ -25,7 +25,8 @@ async function main() {
         
         await db.insert(availableActions).values([
             {id: 'email', name: 'Email'},
-            {id: 'slack', name: 'Slack'}
+            {id: 'slack', name: 'Slack'},
+            {id: 'discord_ai', name: 'Discord AI'}
         ]).onConflictDoNothing()
         
                 // 1. Add 'gmail' to the available triggers
