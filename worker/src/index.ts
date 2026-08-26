@@ -8,7 +8,7 @@ const TOPIC_NAME = "zap-events";
 
 const kafka = new Kafka({
   clientId: "zapier-worker",
-  brokers: ["localhost:9092"],
+  brokers: [process.env.KAFKA_BROKERS || "localhost:9092"],
   retry: {
     initialRetryTime: 300, // Wait 300ms before the first retry
     retries: 5, // Try connecting 5 times before finally throwing an error

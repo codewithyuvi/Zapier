@@ -4,7 +4,7 @@ import type { AppRouter } from 'primary-backend/src/router';
 export const trpc = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: 'http://localhost:3001/trpc',
+      url: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/trpc',
       headers() {
         let token = '';
         if (typeof window !== 'undefined') {

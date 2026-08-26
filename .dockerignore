@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+.git
+database/postgres_data
+database/zookeeper_data
+database/kafka_data
+docker-compose.yml
+Dockerfile
+Dockerfile.frontend
+*.log

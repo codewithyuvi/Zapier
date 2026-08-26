@@ -4,13 +4,14 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-zapier_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zapier_super_secret_password}
+      POSTGRES_DB: ${POSTGRES_DB:-zapier_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.4
     environment:
@@ -25,10 +26,13 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   
   redis:
@@ -38,5 +42,80 @@ services:
       - "6379:6379"
     restart: always
 
+  zapier-frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+    depends_on:
+      - postgres
+      - zapier-primary-backend
+
+  zapier-primary-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "--filter", "primary-backend", "run", "dev"]
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - JWT_SECRET=${JWT_SECRET:-supersecretjwtkey}
+    depends_on:
+      - postgres
+
+  zapier-hooks:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "--filter", "hooks", "run", "dev"]
+    ports:
+      - "3002:3002"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+    depends_on:
+      - postgres
+      - redis
+
+  zapier-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "--filter", "worker", "run", "dev"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - KAFKA_BROKERS=kafka:9092
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+    depends_on:
+      - postgres
+      - kafka
+
+  zapier-sweeper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "--filter", "sweeper", "run", "dev"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      - postgres
+      - kafka
+
+  zapier-poller:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "--filter", "poller", "run", "dev"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+    depends_on:
+      - postgres
+      
 volumes:
   postgres_data:
