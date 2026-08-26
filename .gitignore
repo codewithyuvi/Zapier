@@ -146,3 +146,5 @@ pnpm-lock.yaml
 
 token.json
 credentials.json
+
+zapier-key.pem
