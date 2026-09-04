@@ -95,36 +95,35 @@ These are features we can implement immediately in our current Node.js and Next.
 ---
 
 ## Part 2: High-Level Architecture & DevOps
-These are the massive architectural shifts required to turn our full-stack app into a true cloud-native distributed system.
+These are the massive architectural shifts required to turn our full-stack app into a true cloud-native distributed system, mirroring exactly what was built in Zapier 2.0.
 
 ### 5. Autonomous Distributed Scheduler (Cron Zaps)
-**The Gap:** We currently only support **Webhook** triggers (event-based).
-**The Zapier2.0 Way:** They built a dedicated `Scheduler Service` that evaluates Cron mathematical expressions to trigger Zaps on a strict schedule (e.g., "Run every day at 9 AM"). It uses **Redis Distributed Locks** to prevent multiple servers from firing the same schedule.
-**How we beat it:** We will build a robust Cron Scheduler service using `node-cron` and update our Zap Builder UI to allow users to visually configure time-based triggers.
+**The Target:** A native daemon (`apps/scheduler/`) that processes time-bound triggers (e.g. "every 5 mins").
+**The Implementation:** Use `cron-parser`, implement Redis Distributed Locks (via `ioredis` NX) to prevent duplicate runs across scaled pods, and push execution payloads to the transactional outbox.
 
 ### 6. Real-Time WebSockets (Notification Service)
-**The Gap:** Currently, our Next.js frontend has to refresh the `/history` page to see if a Zap succeeded or failed. 
-**The Zapier2.0 Way:** They built a dedicated WebSocket gateway and use **Redis Pub/Sub**. When their Worker finishes an action, it publishes a success message to Redis, which instantly pushes a live notification to the user's React dashboard.
-**How we beat it:** We can implement a WebSocket microservice using Redis Pub/Sub, and wrap it in stunning UI toast notifications so the user gets a live pop-up the second their Zap finishes.
+**The Target:** A WebSocket gateway (`apps/services/notification-service/`) so the Next.js UI gets live updates when Zaps finish.
+**The Implementation:** Decouple from polling PostgreSQL by subscribing to a Redis Pub/Sub channel (`zap-notification`). The Worker publishes success events, and the WS server pushes them directly to the user's browser.
 
 ### 7. Dead Letter Queue (DLQ) & Fault Tolerance
-**The Gap:** If our Slack Webhook fails, our worker catches the error, marks the DB as `failed`, and gives up immediately.
-**The Zapier2.0 Way:** They implement an automatic **Retry Loop** for transient failures (like network blips). If it fails 3 times, they dump the payload into a separate Kafka topic called `zap-events-dlq` (Dead Letter Queue).
-**How we beat it:** We will implement exponential backoff retries in our worker and set up a DLQ.
+**The Target:** Resilient execution in the Worker service.
+**The Implementation:** Add a Retry Loop (max 3 retries). If an API call fails permanently, the Worker dumps the payload into a separate Kafka topic called `zap-events-dlq` for monitoring, instead of just failing silently.
 
-### 8. Enterprise Infrastructure (GitOps & Kubernetes)
-**The Gap:** We are running locally using `docker-compose.yml`.
-**The Zapier2.0 Way:** They use **Kubernetes (K8s)** running everything, **Terraform** managing infrastructure as code, **ArgoCD & Argo Rollouts** for Canary Deployments, and **Prometheus & Grafana** for advanced metric observability.
-**How we beat it:** We can write Kubernetes manifests, add OpenTelemetry tracing, and set up a fully automated deployment pipeline.
+### 8. Enterprise DevOps & Kubernetes Migration (The Big One)
+**The Target:** Move away from `docker-compose` and build a fully automated, production-ready cloud environment.
+**The Implementation Steps:**
+* **Continuous Integration (GitHub Actions):** Write `.github/workflows` to automatically build and push Docker images for all 7 microservices on every git push.
+* **Kubernetes (K8s) Manifests:** Create a `k8/` directory with Deployment, Service, ConfigMap, and StatefulSet manifests (for Postgres & Redis) and an NGINX Ingress controller for routing.
+* **Kafka on K8s (Strimzi):** Deploy KRaft-enabled Kafka using Strimzi Custom Resource Definitions (KafkaNodePool, KafkaTopic).
+* **Infrastructure as Code (Terraform):** Write `main.tf`, `variables.tf`, and a custom `microservice` module to orchestrate the entire Kubernetes cluster deployment dynamically.
+* **GitOps & Canary Deployments (ArgoCD):** Setup ArgoCD to automatically sync our K8s manifests, and use Argo Rollouts to do progressive (Canary) deployments (e.g., 10% -> 50% traffic splits) for the frontend.
+* **Observability:** Deploy the Prometheus & Grafana stack via Helm to scrape performance metrics from all microservices.
 
 ---
 
 ## The Verdict & Open Questions
 
-This is the master blueprint. We now have a clear path to building the ultimate automation platform.
+This is the master blueprint, fully updated with the exact DevOps stack from the Zapier 2.0 reference project.
 
 **What is our immediate next step?**
-If we are skipping DevOps for now, do you want to tackle:
-1. **Solana Crypto Action**?
-2. **Custom JWT Authentication**?
-3. **Redis Rate Limiting**?
+Since you want to focus on DevOps now, which of the **DevOps & Kubernetes Migration** (Step 8) tasks should we start on first? Or do you want to build the **Scheduler/Notification** backend services (Steps 5 & 6) before moving the infrastructure to Kubernetes?
