@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poller-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: poller
+  template:
+    metadata:
+      labels:
+        app: poller
+    spec:
+      containers:
+      - name: poller
+        image: yuvraj2130/zapier-backend:latest
+        args: ["pnpm", "--filter", "poller", "run", "dev"]
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: DATABASE_URL
+          value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
