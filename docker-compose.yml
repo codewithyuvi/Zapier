@@ -5,7 +5,7 @@ services:
     image: postgres:15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-zapier_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zapier_super_secret_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fall_back_zapier_password}
       POSTGRES_DB: ${POSTGRES_DB:-zapier_db}
     ports:
       - "5432:5432"
@@ -49,7 +49,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
     depends_on:
       - postgres
       - zapier-primary-backend
@@ -62,8 +62,8 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
-      - JWT_SECRET=${JWT_SECRET:-supersecretjwtkey}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - JWT_SECRET=${JWT_SECRET:-fallbackpassword}
     depends_on:
       - postgres
 
@@ -75,7 +75,7 @@ services:
     ports:
       - "3002:3002"
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
     depends_on:
       - postgres
       - redis
@@ -86,7 +86,7 @@ services:
       dockerfile: Dockerfile
     command: ["pnpm", "--filter", "worker", "run", "dev"]
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
       - KAFKA_BROKERS=kafka:9092
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - SMTP_USER=${SMTP_USER}
@@ -101,7 +101,7 @@ services:
       dockerfile: Dockerfile
     command: ["pnpm", "--filter", "sweeper", "run", "dev"]
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
       - KAFKA_BROKERS=kafka:9092
     depends_on:
       - postgres
@@ -113,7 +113,7 @@ services:
       dockerfile: Dockerfile
     command: ["pnpm", "--filter", "poller", "run", "dev"]
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-zapier_super_secret_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-zapier_user}:${POSTGRES_PASSWORD:-fall_back_zapier_password}@postgres:5432/${POSTGRES_DB:-zapier_db}
     depends_on:
       - postgres
       
