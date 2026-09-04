@@ -10,7 +10,7 @@ import { trpc } from "@/utils/trpc";
 
 export default function ZapBuilder() {
   const router = useRouter();
- 
+  
   const [title, setTitle] = useState('Untitled Zap')
   const [trigger, setTrigger] = useState('webhook');
   const [isTriggerMenuOpen, setIsTriggerMenuOpen] = useState(false);
