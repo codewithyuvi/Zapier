@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service
+  name: zookeeper
 spec:
   selector:
-    app: postgres
+    app: zookeeper
   ports:
     - protocol: TCP
-      port: 5432
-      targetPort: 5432
+      port: 2181
+      targetPort: 2181

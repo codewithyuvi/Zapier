@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zapier-primary-backend # Named exactly this so the frontend can find it
+spec:
+  selector:
+    app: primary-backend
+  ports:
+    - protocol: TCP
+      port: 3001
+      targetPort: 3001

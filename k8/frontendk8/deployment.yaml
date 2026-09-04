@@ -1,21 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-deployment
+  name: frontend-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: frontend
   template:
     metadata:
       labels:
-        app: postgres
+        app: frontend
     spec:
       containers:
-      - name: postgres
-        image: postgres:15
+      - name: frontend
+        image: yuvraj2130/zapier-frontend:latest
+        ports:
+        - containerPort: 3000
         env:
+        # We grab the secret passwords first...
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -31,5 +34,6 @@ spec:
             secretKeyRef:
               name: postgres-secret
               key: POSTGRES_DB
-        ports:
-        - containerPort: 5432
+        # ...and dynamically build the connection string! Notice how we point to postgres-service!
+        - name: DATABASE_URL
+          value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
