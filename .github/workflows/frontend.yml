@@ -1,0 +1,17 @@
+name: Build Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'Dockerfile.frontend'
+
+jobs:
+  call-build-push:
+    uses: ./.github/workflows/_build-push.yml
+    with:
+      service: 'frontend'
+      dockerfile: 'Dockerfile.frontend'
+    secrets: inherit
