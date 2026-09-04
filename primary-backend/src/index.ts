@@ -10,7 +10,7 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-app.use( 
+app.use(
   "/trpc",
   trpcExpress.createExpressMiddleware({
     // Pass in our router
