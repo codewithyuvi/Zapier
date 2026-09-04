@@ -1,0 +1,21 @@
+name: Build Backend Core
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'worker/**'
+            - 'poller/**'
+            - 'sweeper/**'
+            - 'hooks/**'
+            - 'primary-backend/**'
+            - 'Dockerfile/**'
+
+jobs:
+    call-build-push:
+        uses: ./.github/workflows/_build-push.yml
+        with:
+            service: 'backend'
+            dockerfile: 'Dockerfile'
+        secrets: inherit
