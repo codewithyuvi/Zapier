@@ -19,7 +19,7 @@ export default function ZapBuilder() {
     type: "email", 
     config: { to: "{payload.email}", body: "Hello {payload.name}!" } 
   }]);
-
+ 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
       router.push("/login");
