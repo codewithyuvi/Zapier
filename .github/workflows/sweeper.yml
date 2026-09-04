@@ -1,0 +1,19 @@
+name: Build Sweeper
+
+on:
+    push:
+        # Only trigger if the code was pushed directly to the main branch
+        branches:
+            - main
+        paths:
+            - 'sweeper/**'
+            - 'Dockerfile.sweeper'
+
+jobs:
+    call-build-push:
+        uses: ./.github/workflows/_build-push.yml
+        with:
+            service: 'sweeper'
+            dockerfile: 'Dockerfile.sweeper'
+        # By default, reusable templates are strictly sandboxed and are not allowed to see your passwords. This command explicitly grants the _build-push.yml template permission to "inherit" (access) the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN secrets you saved in the settings!
+        secrets: inherit
